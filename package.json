@@ -40,6 +40,7 @@
     "node-fetch": "^2.6.1",
     "btch-downloader": "^2.2.9",
     "@sl-code-lords/movie-api": "1.0.0",
+    "@sl-code-lords/si-subdl": "1.1.1",
     "pixaldrain-sinhalasub": "git+https://github.com/Mrnimama/pixaldrain-sinhalasub.git",
     "megajs": "^1.1.0",
     "wa_set_pkg": "1.0.5",
