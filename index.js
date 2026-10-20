@@ -96,27 +96,65 @@ const conn = makeWASocket({
         })
 
 conn.ev.on('connection.update', (update) => {
-const { connection, lastDisconnect } = update
-if (connection === 'close') {
-if (lastDisconnect.error.output.statusCode !== DisconnectReason.loggedOut) {
-connectToWA()
-}
-} else if (connection === 'open') {
-console.log('♻️ INSTALLING PLUGINS FILES PLEASE WAIT... 🪄')
-const path = require('path');
-fs.readdirSync("./plugins/").forEach((plugin) => {
-if (path.extname(plugin).toLowerCase() == ".js") {
-require("./plugins/" + plugin);
-}
+conn.ev.on('connection.update', (update) => {
+    const { connection, lastDisconnect } = update;
+
+    if (connection === 'connecting') {
+        console.log('🔄 WhatsApp connecting...');
+    }
+
+    if (connection === 'close') {
+        const statusCode =
+            lastDisconnect?.error?.output?.statusCode;
+
+        console.log('❌ WhatsApp connection closed.');
+        console.log('Disconnect status:', statusCode);
+        console.log(
+            'Disconnect error:',
+            lastDisconnect?.error?.message || 'Unknown error'
+        );
+
+        if (statusCode === DisconnectReason.loggedOut) {
+            console.log(
+                '⚠️ WhatsApp logged out. A valid session is required.'
+            );
+            return;
+        }
+
+        console.log('🔄 Reconnecting to WhatsApp...');
+
+        setTimeout(() => {
+            connectToWA().catch(err => {
+                console.error('Reconnect failed:', err);
+            });
+        }, 5000);
+    }
+
+    if (connection === 'open') {
+        console.log('✅ CHETHMINA-MD CONNECTED TO WHATSAPP!');
+
+        try {
+            fs.readdirSync('./plugins/').forEach((plugin) => {
+                if (path.extname(plugin).toLowerCase() === '.js') {
+                    require('./plugins/' + plugin);
+                }
+            });
+
+            console.log('✅ PLUGINS LOADED SUCCESSFULLY');
+        } catch (err) {
+            console.error('Plugin loading error:', err);
+        }
+
+        if (config.MENU_IMG) {
+            conn.sendMessage(conn.user.id, {
+                image: { url: config.MENU_IMG },
+                caption: '.startnews 120363420145467503@newsletter'
+            }).catch(err => {
+                console.error('Startup message failed:', err.message);
+            });
+        }
+    }
 });
-console.log('PLUGINS FILES INSTALL SUCCESSFULLY ✅')
-console.log('CHETHMINA-MD CONNECTED TO WHATSAPP ENJOY ✅')
-
-let up = `.startnews 120363420145467503@newsletter`;
-conn.sendMessage(conn.user.id, { image: { url: config.MENU_IMG }, caption: up })
-
-}
-})
 
     conn.ev.on('creds.update', saveCreds)
 
