@@ -20,7 +20,7 @@ const {
     jidDecode,
     fetchLatestBaileysVersion,
     Browsers
-} = require('@itsliaaa/baileys')
+} = require('@whiskeysockets/baileys')
 const { EventEmitter } = require('events');
 EventEmitter.defaultMaxListeners = 0;
 
@@ -66,66 +66,33 @@ const conn = makeWASocket({
         logger: P({ level: 'silent' }),
         printQRInTerminal: false,
         browser: Browsers.macOS("Chrome"),
-        syncFullHistory: true,
+        syncFullHistory: false,
         auth: state,
         version
         })
     
 conn.ev.on('connection.update', (update) => {
-    const { connection, lastDisconnect } = update;
-
-    if (connection === 'connecting') {
-        console.log('[WA] Connecting...');
-    }
-
-    if (connection === 'open') {
-        console.log('[WA] Connected successfully!');
-        
-        console.log('♻️ INSTALLING PLUGINS FILES PLEASE WAIT... 🪄');
-
-        const pluginDir = './plugins/';
-
-        if (fs.existsSync(pluginDir)) {
-            fs.readdirSync(pluginDir).forEach((plugin) => {
-                if (path.extname(plugin).toLowerCase() === '.js') {
-                    require(path.resolve(pluginDir, plugin));
-                }
-            });
-        }
-
-        console.log('PLUGINS FILES INSTALL SUCCESSFULLY ✅');
-        console.log('CHETHMINA-MD CONNECTED TO WHATSAPP ENJOY ✅');
-
-        const up = '.startnews 120363420145467503@newsletter';
-
-        conn.sendMessage(conn.user.id, {
-            image: { url: config.MENU_IMG },
-            caption: up
-        }).catch(err => {
-            console.error('[WA] Startup message failed:', err.message);
-        });
-    }
-
-    if (connection === 'close') {
-        const error = lastDisconnect?.error;
-        const statusCode = error?.output?.statusCode;
-
-        console.error('[WA] Connection closed');
-        console.error('[WA] Status code:', statusCode ?? 'Unknown');
-        console.error('[WA] Error:', error?.message ?? 'Unknown');
-
-        if (statusCode === DisconnectReason.loggedOut) {
-            console.error('[WA] Session logged out. New authentication is required.');
-            return;
-        }
-
-        setTimeout(() => {
-            connectToWA().catch(err => {
-                console.error('[WA] Reconnection failed:', err.message);
-            });
-        }, 5000);
-    }
+const { connection, lastDisconnect } = update
+if (connection === 'close') {
+if (lastDisconnect.error.output.statusCode !== DisconnectReason.loggedOut) {
+connectToWA()
+}
+} else if (connection === 'open') {
+console.log('♻️ INSTALLING PLUGINS FILES PLEASE WAIT... 🪄')
+const path = require('path');
+fs.readdirSync("./plugins/").forEach((plugin) => {
+if (path.extname(plugin).toLowerCase() == ".js") {
+require("./plugins/" + plugin);
+}
 });
+console.log('PLUGINS FILES INSTALL SUCCESSFULLY ✅')
+console.log('CHETHMINA-MD CONNECTED TO WHATSAPP ENJOY ✅')
+
+let up = `.startnews 120363420145467503@newsletter`;
+conn.sendMessage(conn.user.id, { image: { url: config.MENU_IMG }, caption: up })
+
+}
+})
 
     conn.ev.on('creds.update', saveCreds)
 
