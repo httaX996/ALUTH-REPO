@@ -35,46 +35,22 @@ const { sms, downloadMediaMessage } = require('./lib/msg')
 const axios = require('axios')
 const path = require('path')
 const { File } = require('megajs')
-const prefix = ('.')
+ const prefix = ('.')
 
 // Owner Number
 const ownerNumber = ['94722770762']
 
 // Session ID Handling
 //===================SESSION-AUTH============================
-async function downloadSessionIfNeeded() {
-    const sessionDir = path.join(__dirname, 'sessions');
-    const credsPath = path.join(sessionDir, 'creds.json');
-
-    if (fs.existsSync(credsPath)) return;
-
-    fs.mkdirSync(sessionDir, { recursive: true });
-
-    if (!config.SESSION_ID) {
-        throw new Error('Please add your session to SESSION_ID env !!');
-    }
-
-    // Accept this bot's existing prefix and the prefix used by the earlier index.js.
-    const sessdata = String(config.SESSION_ID)
-        .replace(/^KAVI MD~/, '')
-        .replace(/^𝕃𝔸ℝ𝔸-ᴍᴅ=/, '')
-        .replace(/^𝕃𝔸ℝ𝔸-𝕄𝔻=/, '');
-
-    const filer = File.fromURL(`https://mega.nz/file/${sessdata}`);
-
-    await new Promise((resolve, reject) => {
-        filer.download((err, data) => {
-            if (err) return reject(err);
-
-            fs.writeFile(credsPath, data, (writeErr) => {
-                if (writeErr) return reject(writeErr);
-
-                console.log('SESSION DOWNLOADED COMPLETED ✅');
-                resolve();
-            });
-        });
-    });
-}
+if (!fs.existsSync(__dirname + '/sessions/creds.json')) {
+if(!config.SESSION_ID) return console.log('Please add your session to SESSION_ID env !!')
+const sessdata = config.SESSION_ID.replace("KAVI MD~", '');
+const filer = File.fromURL(`https://mega.nz/file/${sessdata}`)
+filer.download((err, data) => {
+if(err) throw err
+fs.writeFile(__dirname + '/sessions/creds.json', data, () => {
+console.log("SESSION DOWNLOADED COMPLETED ✅")
+})})}
 
 const express = require("express");
 const app = express();
@@ -94,67 +70,29 @@ const conn = makeWASocket({
         auth: state,
         version
         })
-
+    
 conn.ev.on('connection.update', (update) => {
-conn.ev.on('connection.update', (update) => {
-    const { connection, lastDisconnect } = update;
-
-    if (connection === 'connecting') {
-        console.log('🔄 WhatsApp connecting...');
-    }
-
-    if (connection === 'close') {
-        const statusCode =
-            lastDisconnect?.error?.output?.statusCode;
-
-        console.log('❌ WhatsApp connection closed.');
-        console.log('Disconnect status:', statusCode);
-        console.log(
-            'Disconnect error:',
-            lastDisconnect?.error?.message || 'Unknown error'
-        );
-
-        if (statusCode === DisconnectReason.loggedOut) {
-            console.log(
-                '⚠️ WhatsApp logged out. A valid session is required.'
-            );
-            return;
-        }
-
-        console.log('🔄 Reconnecting to WhatsApp...');
-
-        setTimeout(() => {
-            connectToWA().catch(err => {
-                console.error('Reconnect failed:', err);
-            });
-        }, 5000);
-    }
-
-    if (connection === 'open') {
-        console.log('✅ CHETHMINA-MD CONNECTED TO WHATSAPP!');
-
-        try {
-            fs.readdirSync('./plugins/').forEach((plugin) => {
-                if (path.extname(plugin).toLowerCase() === '.js') {
-                    require('./plugins/' + plugin);
-                }
-            });
-
-            console.log('✅ PLUGINS LOADED SUCCESSFULLY');
-        } catch (err) {
-            console.error('Plugin loading error:', err);
-        }
-
-        if (config.MENU_IMG) {
-            conn.sendMessage(conn.user.id, {
-                image: { url: config.MENU_IMG },
-                caption: '.startnews 120363420145467503@newsletter'
-            }).catch(err => {
-                console.error('Startup message failed:', err.message);
-            });
-        }
-    }
+const { connection, lastDisconnect } = update
+if (connection === 'close') {
+if (lastDisconnect.error.output.statusCode !== DisconnectReason.loggedOut) {
+connectToWA()
+}
+} else if (connection === 'open') {
+console.log('♻️ INSTALLING PLUGINS FILES PLEASE WAIT... 🪄')
+const path = require('path');
+fs.readdirSync("./plugins/").forEach((plugin) => {
+if (path.extname(plugin).toLowerCase() == ".js") {
+require("./plugins/" + plugin);
+}
 });
+console.log('PLUGINS FILES INSTALL SUCCESSFULLY ✅')
+console.log('CHETHMINA-MD CONNECTED TO WHATSAPP ENJOY ✅')
+
+let up = `.startnews 120363420145467503@newsletter`;
+conn.sendMessage(conn.user.id, { image: { url: config.MENU_IMG }, caption: up })
+
+}
+})
 
     conn.ev.on('creds.update', saveCreds)
 
@@ -238,13 +176,13 @@ conn.ev.on('connection.update', (update) => {
 
         //__________________________________________ANTI DELETE_________________________________
     if (!m.id.startsWith("BAE5")) {
-
+    
     // Ensure the base directory exists
     const baseDir = 'message_data';
     if (!fs.existsSync(baseDir)) {
       fs.mkdirSync(baseDir);
     }
-
+    
     function loadChatData(remoteJid, messageId) {
       const chatFilePath = path.join(baseDir, remoteJid, `${messageId}.json`);
       try {
@@ -254,16 +192,16 @@ conn.ev.on('connection.update', (update) => {
         return [];
       }
     }
-
+    
     function saveChatData(remoteJid, messageId, chatData) {
       const chatDir = path.join(baseDir, remoteJid);
-
+    
       if (!fs.existsSync(chatDir)) {
         fs.mkdirSync(chatDir, { recursive: true });
       }
-
+    
       const chatFilePath = path.join(chatDir, `${messageId}.json`);
-
+    
       try {
         fs.writeFileSync(chatFilePath, JSON.stringify(chatData, null, 2));
        // console.log('Chat data saved successfully.');
@@ -271,39 +209,39 @@ conn.ev.on('connection.update', (update) => {
         console.error('Error saving chat data:', error);
       }
     }
-
+        
     function handleIncomingMessage(message) {
       const remoteJid = from //message.key.remoteJid;
       const messageId = message.key.id;
-
+    
       const chatData = loadChatData(remoteJid, messageId);
-
+    
       chatData.push(message);
-
+    
       saveChatData(remoteJid, messageId, chatData);
-
+    
     //  console.log('Message received and saved:', messageId);
     }
-
+    
     const delfrom = config.DELETEMSGSENDTO !=='' ? config.DELETEMSGSENDTO + '@s.whatsapp.net': from
     function handleMessageRevocation(revocationMessage) {
     //const remoteJid = revocationMessage.message.protocolMessage.key.remoteJid;
-     //const messageId = revocationMessage.msg.key.id;
-    const remoteJid = from // revocationMessage.msg.key.remoteJid
-        const messageId = revocationMessage.msg.key.id;
-
+     //const messageId = revocationMessage.message.protocolMessage.key.id;
+    const remoteJid = from // revocationMessage.msg.key.remoteJid;
+    const messageId = revocationMessage.msg.key.id;
+    
+        
      // console.log('Received revocation message with ID:', messageId);
-
+    
       const chatData = loadChatData(remoteJid, messageId);
-
-       const originalMessage = chatData[0]
-
+    
+       const originalMessage = chatData[0]   
+    
       if (originalMessage) {
         const deletedBy = revocationMessage.sender.split('@')[0];
         const sentBynn = originalMessage.key.participant ?? revocationMessage.sender;
-        const sentBy = sentBynn.split('@')[0];
-        if ( deletedBy.includes(botNumber) || sentBy.includes(botNumber) ) return;
-
+    const sentBy = sentBynn.split('@')[0];
+          if ( deletedBy.includes(botNumber) || sentBy.includes(botNumber) ) return;
      if(originalMessage.message && originalMessage.message.conversation && originalMessage.message.conversation !== ''){
          const messageText = originalMessage.message.conversation;
     if (isGroup && messageText.includes('chat.whatsapp.com')) return;
@@ -312,38 +250,38 @@ conn.ev.on('connection.update', (update) => {
     //........................................//........................................
     }else if(originalMessage.msg.type ==='MESSAGE_EDIT'){
      conn.sendMessage(delfrom, { text: `❌ *edited message detected* ${originalMessage.message.editedMessage.message.protocolMessage.editedMessage.conversation}` },{quoted: mek});
-
+     
     //........................................//........................................
-    } else if(originalMessage.message && originalMessage.message.exetendedTextMessage && originalMessage.msg.text ){
+    } else if(originalMessage.message && originalMessage.message.exetendedTextMessage && originalMessage.msg.text ){ //&& originalMessage.message.exetendedTextMessage.text && originalMessage.message.exetendedTextMessage.text !== ''){
         const messageText = originalMessage.msg.text;
     if (isGroup && messageText.includes('chat.whatsapp.com')) return;
-
+    
      var xx = '```'
      conn.sendMessage(delfrom, { text: `⁉️ *This message was deleted !!*\n\n  🚮 *Deleted by:* _${deletedBy}_\n  📩 *Sent by:* _${sentBy}_\n\n> 🔓 Message Text: ${xx}${messageText}${xx}` });
-    } else if(originalMessage.message && originalMessage.message.exetendedTextMessage ){
+    } else if(originalMessage.message && originalMessage.message.exetendedTextMessage ){ //&& originalMessage.message.exetendedTextMessage.text && originalMessage.message.exetendedTextMessage.text !== ''){
         const messagetext = originalMessage.message.extendedTextMessage.text;
     if (isGroup && messageText.includes('chat.whatsapp.com')) return;
      var xx = '```'
      conn.sendMessage(delfrom, { text: `⁉️ *This message was deleted !!*\n\n  🚮 *Deleted by:* _${deletedBy}_\n  📩 *Sent by:* _${sentBy}_\n\n> 🔓 Message Text: ${xx}${originalMessage.body}${xx}` });
     }else if(originalMessage.type === 'extendedTextMessage') {
-    async function quotedMessageRetrive(){
+    async function quotedMessageRetrive(){     
     var nameJpg = getRandom('');
     const ml = sms(conn, originalMessage)
-
+                
     if(originalMessage.message.extendedTextMessage){
     const messagetext = originalMessage.message.extendedTextMessage.text;
     if (isGroup && messageText.includes('chat.whatsapp.com')) return;
         var xx = '```'
-     conn.sendMessage(delfrom, { text: `⁉️ *This message was deleted !!*\n\n  🚮 *Deleted by:* _${deletedBy}_\n  📩 *Sent by:* _${sentBy}_\n\n> 🔓 Message Text: ${originalMessage.message.extendedTextMessage.text}${xx}` });
+     conn.sendMessage(delfrom, { text: `⁉️ *This message was deleted !!*\n\n  🚮 *Deleted by:* _${deletedBy}_\n  📩 *Sent by:* _${sentBy}_\n\n> 🔓 Message Text: ${xx}${originalMessage.message.extendedTextMessage.text}${xx}` });
     }else{
     const messagetext = originalMessage.message.extendedTextMessage.text;
     if (isGroup && messageText.includes('chat.whatsapp.com')) return;
         conn.sendMessage(delfrom, { text: `⁉️ *This message was deleted !!*\n\n  🚮 *Deleted by:* _${deletedBy}_\n  📩 *Sent by:* _${sentBy}_\n\n> 🔓 Message Text: ${xx}${originalMessage.message.extendedTextMessage.text}${xx}` });
     }
     }
-
+    
     quotedMessageRetrive()
-
+           
     }else if(originalMessage.type === 'imageMessage') {
           async function imageMessageRetrive(){      var nameJpg = getRandom('');
     const ml = sms(conn, originalMessage)
@@ -354,18 +292,18 @@ conn.ev.on('connection.update', (update) => {
     if(originalMessage.message.imageMessage.caption){
     const messageText = originalMessage.message.imageMessage.caption;
     if (isGroup && messageText.includes('chat.whatsapp.com')) return;
-
+    
         await conn.sendMessage(delfrom, { image: fs.readFileSync("./" + type.ext), caption: `⁉️ *This message was deleted !!*\n\n  🚮 *Deleted by:* _${deletedBy}_\n  📩 *Sent by:* _${sentBy}_\n\n> 🔓 Message Text: ${originalMessage.message.imageMessage.caption}` })
     }else{
         await conn.sendMessage(delfrom, { image: fs.readFileSync("./" + type.ext), caption: `⁉️ *This message was deleted !!*\n\n  🚮 *Deleted by:* _${deletedBy}_\n  📩 *Sent by:* _${sentBy}_` })
-    }
+    }       
         }
     imageMessageRetrive()
-
+     
     }else if(originalMessage.type === 'videoMessage') {
           async function videoMessageRetrive(){      var nameJpg = getRandom('');
     const ml = sms(conn, originalMessage)
-
+    
     const vData = originalMessage.message.videoMessage.fileLength
     const vTime = originalMessage.message.videoMessage.seconds;
     const fileDataMB = config.ANTI_DELETE_MAX_SIZE
@@ -380,7 +318,7 @@ conn.ev.on('connection.update', (update) => {
                 await fs.promises.writeFile("./" + type.ext, buff);
     const messageText = originalMessage.message.videoMessage.caption;
     if (isGroup && messageText.includes('chat.whatsapp.com')) return;
-
+    
         await conn.sendMessage(delfrom, { video: fs.readFileSync("./" + type.ext), caption: `⁉️ *This message was deleted !!*\n\n  🚮 *Deleted by:* _${deletedBy}_\n  📩 *Sent by:* _${sentBy}_\n\n> 🔓 Message Text: ${originalMessage.message.videoMessage.caption}` })
            }
     }else{
@@ -397,7 +335,7 @@ conn.ev.on('connection.update', (update) => {
     if (fileLengthMB < fileDataMB && fileseconds < 30*60 ) {
         await conn.sendMessage(delfrom, { video: fs.readFileSync("./" + type.ext), caption: `⁉️ *This message was deleted !!*\n\n  🚮 *Deleted by:* _${deletedBy}_\n  📩 *Sent by:* _${sentBy}_` })
     }
-    }
+    }       
     }
     videoMessageRetrive()
     }else if(originalMessage.type === 'documentMessage') {
@@ -407,18 +345,20 @@ conn.ev.on('connection.update', (update) => {
                 let fileType = require('file-type');
                 let type = fileType.fromBuffer(buff);
                 await fs.promises.writeFile("./" + type.ext, buff);
-
+    
+        
+    
     if(originalMessage.message.documentWithCaptionMessage){
-
+    
     await conn.sendMessage(delfrom, { document: fs.readFileSync("./" + type.ext), mimetype: originalMessage.message.documentMessage.mimetype, fileName: originalMessage.message.documentMessage.fileName, caption: `🚫 *This message was deleted !!*\n\n  🚮 *Deleted by:* _${deletedBy}_\n  📩 *Sent by:* _${sentBy}_\n`});
-
+     
     }else{
-
+    
     await conn.sendMessage(delfrom, { document: fs.readFileSync("./" + type.ext), mimetype: originalMessage.message.documentMessage.mimetype, fileName: originalMessage.message.documentMessage.fileName, caption: `🚫 *This message was deleted !!*\n\n  🚮 *Deleted by:* _${deletedBy}_\n  📩 *Sent by:* _${sentBy}_\n`});
-
+    
     }
      }
-
+    
     documentMessageRetrive()
     }else if(originalMessage.type === 'audioMessage') {
           async function audioMessageRetrive(){      var nameJpg = getRandom('');
@@ -428,19 +368,19 @@ conn.ev.on('connection.update', (update) => {
                 let type = fileType.fromBuffer(buff);
                 await fs.promises.writeFile("./" + type.ext, buff);
     if(originalMessage.message.audioMessage){
-    const audioq = await conn.sendMessage(delfrom, { audio: fs.readFileSync("./" + type.ext), mimetype:  originalMessage.message.audioMessage.mimetype, fileName:  `${m.id}.mp3` })
+    const audioq = await conn.sendMessage(delfrom, { audio: fs.readFileSync("./" + type.ext), mimetype:  originalMessage.message.audioMessage.mimetype, fileName:  `${m.id}.mp3` })	
     return await conn.sendMessage(delfrom, { text: `⁉️ *This message was deleted !!*\n\n  🚮 *Deleted by:* _${deletedBy}_\n  📩 *Sent by:* _${sentBy}_\n` },{quoted: audioq});
-
+    
     }else{
     if(originalMessage.message.audioMessage.ptt === "true"){
-
-    const pttt = await conn.sendMessage(delfrom, { audio: fs.readFileSync("./" + type.ext), mimetype:  originalMessage.message.audioMessage.mimetype, ptt: 'true',fileName: `${m.id}.mp3` })
+    
+    const pttt = await conn.sendMessage(delfrom, { audio: fs.readFileSync("./" + type.ext), mimetype:  originalMessage.message.audioMessage.mimetype, ptt: 'true',fileName: `${m.id}.mp3` })	
     return await conn.sendMessage(delfrom, { text: `⁉️ *This message was deleted !!*\n\n  🚮 *Deleted by:* _${deletedBy}_\n  📩 *Sent by:* _${sentBy}_\n` },{quoted: pttt});
-
+    
      }
       }
      }
-
+    
     audioMessageRetrive()
     }else if(originalMessage.type === 'stickerMessage') {
           async function stickerMessageRetrive(){      var nameJpg = getRandom('');
@@ -450,34 +390,36 @@ conn.ev.on('connection.update', (update) => {
                 let type = fileType.fromBuffer(buff);
                 await fs.promises.writeFile("./" + type.ext, buff);
     if(originalMessage.message.stickerMessage){
-
+     
+    //await conn.sendMessage(from, { audio: fs.readFileSync("./" + type.ext), mimetype:  originalMessage.message.audioMessage.mimetype, fileName:  `${m.id}.mp3` })	
      const sdata = await conn.sendMessage(delfrom,{sticker: fs.readFileSync("./" + type.ext) ,package: 'Lara-MD'})
     return await conn.sendMessage(delfrom, { text: `⁉️ *This message was deleted !!*\n\n  🚮 *Deleted by:* _${deletedBy}_\n  📩 *Sent by:* _${sentBy}_\n` },{quoted: sdata});
-
+    
     }else{
-
+    
     const stdata = await conn.sendMessage(delfrom,{sticker: fs.readFileSync("./" + type.ext) ,package: 'Lara-MD'})
     return await conn.sendMessage(delfrom, { text: `⁉️ *This message was deleted !!*\n\n  🚮 *Deleted by:* _${deletedBy}_\n  📩 *Sent by:* _${sentBy}_\n` },{quoted: stdata});
-
+    
       }
      }
-
+    
     stickerMessageRetrive()
              }
-
+         
       } else {
         console.log('Original message not found for revocation.');
       }
     }
-
+    
     if (mek.msg && mek.msg.type === 0) {
       handleMessageRevocation(mek);
-    } else {
+    } else {//if(mek.message && mek.message.conversation && mek.message.conversation !== ''){
       handleIncomingMessage(mek);
+    
+        }
+    
     }
-
-    }
-                //__________________________________________STATUS DOWNLOAD_________________________________
+        //__________________________________________STATUS DOWNLOAD_________________________________
         if (body === "send" || body === "Send" || body === "Seve" || body === "Ewpm" || body === "ewpn" || body === "Dapan" || body === "dapan" || body === "oni" || body === "Oni" || body === "save" || body === "Save" || body === "ewanna" || body === "Ewanna" || body === "ewam" || body === "Ewam" || body === "sv" || body === "Sv" || body === "දාන්න" || body === "එවම්න") {
             const data = JSON.stringify(mek.message, null, 2);
             const jsonData = JSON.parse(data);
@@ -540,21 +482,21 @@ conn.ev.on('connection.update', (update) => {
                 m.react(randomReaction);
             }
         }
-
-        //AUto Read Function
+        //_____________________________________
+        //AUto Read Function 
 conn.ev.on('messages.upsert', async (mek) => {
     try {
         mek = mek.messages[0];
         if (!mek.message) return;
 
         // Handle ephemeral messages
-        mek.message = (getContentType(mek.message) === 'ephemeralMessage')
-            ? mek.message.ephemeralMessage.message
+        mek.message = (getContentType(mek.message) === 'ephemeralMessage') 
+            ? mek.message.ephemeralMessage.message 
             : mek.message;
 
         // Auto-read functionality
         if (config.READ_MESSAGE === 'true') {
-            await conn.readMessages([mek.key]);
+            await conn.readMessages([mek.key]);  // Mark message as read
             console.log(`Marked message from ${mek.key.remoteJid} as read.`);
         }
 
@@ -564,16 +506,15 @@ conn.ev.on('messages.upsert', async (mek) => {
         const content = JSON.stringify(mek.message);
         const from = mek.key.remoteJid;
         const isGroup = from.endsWith('@g.us');
-        const sender = mek.key.fromMe
-            ? conn.user.id.split(':')[0] + '@s.whatsapp.net'
+        const sender = mek.key.fromMe 
+            ? conn.user.id.split(':')[0] + '@s.whatsapp.net' 
             : mek.key.participant || mek.key.remoteJid;
 
         // More code...
     } catch (err) {
         console.error('Error in message handler:', err);
     }
-});
-
+});    
 //_________________STATUS_REACT_FUNCTION_____________
 conn.decodeJid = jid => {
       if (!jid) return jid;
@@ -593,10 +534,9 @@ conn.decodeJid = jid => {
             if (isReact) return
             m.react("👨‍💻")
         }
-
         //_________Ofline___________________
       if (config.ALWAYS_ONLINE === "false") {
-        conn.sendPresenceUpdate('unavailable');
+        conn.sendPresenceUpdate('unavailable'); // Sets the bot's last seen status
         }
 
         //___________________________________BOT WORK MODE_________________________________
@@ -617,8 +557,8 @@ conn.decodeJid = jid => {
                     });
                 } catch (e) {
                     console.error("[PLUGIN ERROR] " + e);
-                }
-            }
+        }
+        }
         }
 
         //_________________________________PLUGIN MAP_________________________________
@@ -632,21 +572,14 @@ conn.decodeJid = jid => {
             } else if (command.on === "sticker" && mek.type === "stickerMessage") {
                 command.function(conn, mek, m, { from, l, quoted, body, isCmd, command, args, q, isGroup, sender, senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, groupMetadata, groupName, participants, groupAdmins, isBotAdmins, isAdmins, reply })
             }});
+//_______________________________________________________________________________________________________________________
 })
-
 }
 
 app.get("/", (req, res) => {
     res.send("CHETHMINA-MD CONECTED✅");
 });
-
 app.listen(port, () => console.log(`Server listening on port http://localhost:${port}`));
-
-setTimeout(async () => {
-    try {
-        await downloadSessionIfNeeded();
-        await connectToWA();
-    } catch (error) {
-        console.error('Session download / WhatsApp startup failed:', error);
-    }
+setTimeout(() => {
+    connectToWA();
 }, 4000);
