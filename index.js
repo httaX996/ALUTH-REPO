@@ -66,7 +66,7 @@ const conn = makeWASocket({
         logger: P({ level: 'silent' }),
         printQRInTerminal: false,
         browser: Browsers.macOS("Chrome"),
-        syncFullHistory: false,
+        syncFullHistory: true,
         auth: state,
         version
         })
