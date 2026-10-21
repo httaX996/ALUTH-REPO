@@ -9,7 +9,7 @@
     "restart": "pm2 restart CK-BOT"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "7.0.0-rc14",
+    "@whiskeysockets/baileys": "npm:@dnuzi/baileys",
     "@itsliaaa/baileys": "0.3.18-final",
     "api-dylux": "latest",
     "@adiwajshing/keyed-db": "^0.2.4",
